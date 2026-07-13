@@ -1,0 +1,72 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>BotCensus</AssemblyName>
+    <RootNamespace>BotCensus</RootNamespace>
+    <Version>1.1.0</Version>
+    <Nullable>disable</Nullable>
+    <DebugType>none</DebugType>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <!-- Repo sits three levels under the SPT root; keeps HintPaths portable across installs. -->
+    <SptRoot>$(MSBuildProjectDirectory)\..\..\..</SptRoot>
+    <Managed>$(SptRoot)\EscapeFromTarkov_Data\Managed</Managed>
+  </PropertyGroup>
+
+  <!-- Lets `dotnet build` target net472 without a separate targeting pack installed. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="BepInEx">
+      <HintPath>$(SptRoot)\BepInEx\core\BepInEx.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(Managed)\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(Managed)\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(Managed)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>$(Managed)\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(Managed)\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Fika.Core">
+      <HintPath>$(SptRoot)\BepInEx\plugins\Fika\Fika.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Transitive deps the compiler needs to resolve FikaPlayer's type hierarchy. -->
+    <Reference Include="DissonanceVoip">
+      <HintPath>$(Managed)\DissonanceVoip.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Comfort">
+      <HintPath>$(Managed)\Comfort.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Comfort.Unity">
+      <HintPath>$(Managed)\Comfort.Unity.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Drop the built plugin straight into the game after each build. -->
+  <Target Name="DeployToGame" AfterTargets="Build">
+    <MakeDir Directories="$(SptRoot)\BepInEx\plugins\BotCensus" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(SptRoot)\BepInEx\plugins\BotCensus" />
+  </Target>
+
+</Project>

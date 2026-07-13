@@ -18,6 +18,8 @@ Everything the stock counter does, plus the parts it drops:
 - **AI PMCs**, separated from the scav side by faction (USEC / BEAR).
 - **Raiders and Rogues** on separate lines by default. Fold them into one row from F12 if you'd rather
   keep the panel short.
+- **Bosses and their guards** on separate lines too, so you can tell whether the boss himself is still up
+  or only his guards are left. Merge them from F12 as well.
 - **Scavs, bosses, cultists and the infected event**, with the vanilla oddities the stock counter
   mis-sorts put right: `crazyAssaultEvent` reads as a Scav instead of a boss, and `cursedAssault`,
   `assaultGroup` and the misspelled `sectactPriestEvent` all land where they should. Anything genuinely
@@ -45,6 +47,7 @@ In-game **F12**, or `BepInEx/config/com.sipto.botcensus.cfg`:
 | Use Tarkov Font | on | The game's Bender face, with fallbacks |
 | Background Opacity | 0.72 | Panel backing, 0 (clear) to 1 (solid) |
 | Split Rogue And Raider | on | Off merges them into a single row |
+| Split Boss And Guard | on | Off merges them into a single row |
 | Update Interval | 5s | 5s / 10s / 15s / 30s / 1min |
 
 Every bot type also has its own visibility mode: **Always** keeps the row up even at zero,

@@ -65,7 +65,7 @@ namespace BotCensus
             float right = panel.x + width - pad;
             float innerWidth = right - left;
 
-            GUI.Label(new Rect(left, y + 4f, innerWidth, titleHeight), "RAID CENSUS", _title);
+            GUI.Label(new Rect(left, y + 4f, innerWidth, titleHeight), "BOT CENSUS", _title);
             DrawRect(new Rect(left, y + titleHeight + 2f, innerWidth, 1f), Border);
 
             float rowTop = y + titleHeight + 6f;

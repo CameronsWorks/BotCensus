@@ -27,8 +27,11 @@ namespace BotCensus
             // the zombie event faction.
             { 60, Bucket.Infected }, { 61, Bucket.Infected }, { 62, Bucket.Infected }, { 63, Bucket.Infected }, { 64, Bucket.Infected },
 
-            // event bosses whose names carry no boss/follower keyword (38/40 Zryachiy events, 67 Tagilla helper).
-            { 38, Bucket.Boss }, { 40, Bucket.Boss }, { 67, Bucket.Boss },
+            // event bosses whose names carry no boss/follower keyword (38/40 Zryachiy events).
+            { 38, Bucket.Boss }, { 40, Bucket.Boss },
+
+            // 67 tagillaHelperAgro is one of Tagilla's guards, not the boss, and carries no keyword.
+            { 67, Bucket.Guard },
 
             // 46 shooterBTR — the armoured car's turret gunner.
             { 46, Bucket.Btr },
@@ -43,7 +46,8 @@ namespace BotCensus
             if (Pinned.TryGetValue((int)role, out var bucket)) return bucket;
 
             string name = role.ToString().ToLowerInvariant();
-            if (name.Contains("boss") || name.Contains("follower")) return Bucket.Boss;
+            if (name.Contains("boss")) return Bucket.Boss;
+            if (name.Contains("follower")) return Bucket.Guard;
             // "sectact" covers the 39 sectactPriestEvent typo in EFT's own enum.
             if (name.Contains("sectant") || name.Contains("sectact")) return Bucket.Cultist;
             return Bucket.Other;

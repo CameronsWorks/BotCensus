@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace BotCensus
 {
-    [BepInPlugin(PluginId, "Bot Census", "1.1.0")]
+    [BepInPlugin(PluginId, "Bot Census", "1.2.0")]
     [BepInDependency("com.morebotsapi.tacticaltoaster", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.fika.core", BepInDependency.DependencyFlags.SoftDependency)]
     public class BotCensusPlugin : BaseUnityPlugin
@@ -25,9 +25,10 @@ namespace BotCensus
         ConfigEntry<bool> _tarkovFont;
         ConfigEntry<float> _bgOpacity;
         ConfigEntry<bool> _splitRogue;
+        ConfigEntry<bool> _splitBoss;
         ConfigEntry<string> _interval;
 
-        ConfigEntry<RowVis> _showPmc, _showScav, _showRaider, _showRogue, _showBoss,
+        ConfigEntry<RowVis> _showPmc, _showScav, _showRaider, _showRogue, _showBoss, _showGuard,
                             _showGoon, _showCultist, _showInfected, _showBtr, _showOther;
 
         readonly int[] _counts = new int[System.Enum.GetValues(typeof(Bucket)).Length];  // indexed by Bucket
@@ -37,6 +38,7 @@ namespace BotCensus
         float _raidTimer;
         bool _inRaid;
         bool? _fika;
+        GameWorld _world;
 
         void Awake()
         {
@@ -59,11 +61,14 @@ namespace BotCensus
 
             _splitRogue = Config.Bind("3. Rows", "Split Rogue And Raider", true,
                 "On: separate Raider and Rogue rows. Off: one 'Raider / Rogue' row to save space.");
+            _splitBoss = Config.Bind("3. Rows", "Split Boss And Guard", true,
+                "On: separate Boss and Guard rows so you can tell if only the guards are left. Off: one 'Boss / Guard' row.");
             _showPmc      = Config.Bind("3. Rows", "PMC",      RowVis.Always,      RowHelp);
             _showScav     = Config.Bind("3. Rows", "Scav",     RowVis.Always,      RowHelp);
             _showRaider   = Config.Bind("3. Rows", "Raider",   RowVis.WhenPresent, RowHelp);
             _showRogue    = Config.Bind("3. Rows", "Rogue",    RowVis.WhenPresent, RowHelp);
             _showBoss     = Config.Bind("3. Rows", "Boss",     RowVis.WhenPresent, RowHelp);
+            _showGuard    = Config.Bind("3. Rows", "Guard",    RowVis.WhenPresent, RowHelp);
             _showGoon     = Config.Bind("3. Rows", "Goons",    RowVis.WhenPresent, RowHelp);
             _showCultist  = Config.Bind("3. Rows", "Cultist",  RowVis.WhenPresent, RowHelp);
             _showInfected = Config.Bind("3. Rows", "Infected", RowVis.WhenPresent, RowHelp);
@@ -81,13 +86,15 @@ namespace BotCensus
         {
             if (!_enabled.Value) return;
 
-            // Cheap raid-state poll so the overlay knows when to hide, decoupled from the recount cadence.
+            // Raid-state poll. Cache the GameWorld and only scan when we don't have one — FindObjectOfType is
+            // expensive, and scanning it on a timer twice a second stutters on dense maps.
             _raidTimer += Time.deltaTime;
             if (_raidTimer >= 0.5f)
             {
                 _raidTimer = 0f;
                 bool was = _inRaid;
-                _inRaid = Object.FindObjectOfType<GameWorld>() != null;
+                if (_world == null) _world = Object.FindObjectOfType<GameWorld>();
+                _inRaid = _world != null;
                 if (was && !_inRaid && _onlyInRaid.Value)   // left the raid: drop the last tally
                 {
                     _rows.Clear();
@@ -141,8 +148,7 @@ namespace BotCensus
 
         void CountSolo()
         {
-            var world = Object.FindObjectOfType<GameWorld>();
-            var players = world != null ? world.RegisteredPlayers : null;
+            var players = _world != null ? _world.RegisteredPlayers : null;
             if (players == null) return;
             for (int i = 0; i < players.Count; i++)
                 Classify(players[i], false);
@@ -205,7 +211,16 @@ namespace BotCensus
                 AddRow("Raider / Rogue", both, _showRaider, false);
             }
 
-            Row("Boss / Guard", Bucket.Boss, _showBoss);
+            if (_splitBoss.Value)
+            {
+                Row("Boss", Bucket.Boss, _showBoss);
+                Row("Guard", Bucket.Guard, _showGuard);
+            }
+            else
+            {
+                int both = _counts[(int)Bucket.Boss] + _counts[(int)Bucket.Guard];
+                AddRow("Boss / Guard", both, _showBoss, false);
+            }
             AddRow("Goons", _counts[(int)Bucket.Goon], _showGoon, true);   // accent — a marquee target like the factions
             Row("Cultist", Bucket.Cultist, _showCultist);
             Row("Infected", Bucket.Infected, _showInfected);
@@ -244,6 +259,7 @@ namespace BotCensus
         Raider,
         Rogue,
         Boss,
+        Guard,
         Goon,
         Cultist,
         Infected,

@@ -1,18 +1,15 @@
 # Bot Census
 
 An in-raid overlay that tallies the AI you're sharing the map with, custom factions included. RUAF,
-UNTAR, Black Division and friends register above the vanilla bot range, where the stock *Detailed Bot
-Counter* can't see them. Bot Census counts them, and cleans up a pile of vanilla miscounts on the way.
+UNTAR, Black Division and friends register above the vanilla bot range, and Bot Census reads them off
+MoreBotsAPI's live registry so each lands on its own line.
 
 ## What it counts
 
-Everything the stock counter does, plus the parts it drops:
-
 - **Custom factions** (via MoreBotsAPI): RUAF, Remnant, UNTAR, Black Division, each on its own line.
-  They spawn as `WildSpawnType` values above the vanilla ceiling of 67, so a counter that only knows
-  the built-in branches reads them as nothing. Bot Census pulls names from MoreBotsAPI's live registry
-  by reflection, which means factions added after this was written show up too; with MoreBotsAPI absent
-  it falls back to the known ID ranges.
+  They spawn as `WildSpawnType` values above the vanilla ceiling of 67. Bot Census pulls names from
+  MoreBotsAPI's live registry by reflection rather than hardcoding a list, which means factions added
+  after this was written show up too; with MoreBotsAPI absent it falls back to the known ID ranges.
 - **The Goons.** Knight, Big Pipe and Birdeye get their own line, so you know the trio is on the map.
 - **The BTR gunner**, on its own line.
 - **AI PMCs**, separated from the scav side by faction (USEC / BEAR).
@@ -20,8 +17,8 @@ Everything the stock counter does, plus the parts it drops:
   keep the panel short.
 - **Bosses and their guards** on separate lines too, so you can tell whether the boss himself is still up
   or only his guards are left. Merge them from F12 as well.
-- **Scavs, bosses, cultists and the infected event**, with the vanilla oddities the stock counter
-  mis-sorts put right: `crazyAssaultEvent` reads as a Scav instead of a boss, and `cursedAssault`,
+- **Scavs, bosses, cultists and the infected event**, with the vanilla sorting oddities put right:
+  `crazyAssaultEvent` reads as a Scav instead of a boss, and `cursedAssault`,
   `assaultGroup` and the misspelled `sectactPriestEvent` all land where they should. Anything genuinely
   unrecognised still lands under **Other** rather than disappearing.
 
@@ -60,9 +57,9 @@ off entirely. PMC and Scav start on Always, the rest on WhenPresent.
 On a Fika raid it counts off the shared player list, so your numbers match the host's. It only reads
 state and draws to your own screen; nothing networked, no patches.
 
-## Running with the stock Bot Counter
+## Panel position
 
-Both draw in the top-right, so pick one. Either turn the stock counter off in its config, or bump
+It draws in the top-right. If you've already got a counter living there, run one or the other, or bump
 **Offset Top** here so the two don't overlap.
 
 ## Build

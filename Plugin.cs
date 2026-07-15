@@ -3,11 +3,12 @@ using BepInEx;
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using EFT;
+using EFT.UI.Screens;
 using UnityEngine;
 
 namespace BotCensus
 {
-    [BepInPlugin(PluginId, "Bot Census", "1.2.0")]
+    [BepInPlugin(PluginId, "Bot Census", "1.2.1")]
     [BepInDependency("com.morebotsapi.tacticaltoaster", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.fika.core", BepInDependency.DependencyFlags.SoftDependency)]
     public class BotCensusPlugin : BaseUnityPlugin
@@ -34,8 +35,11 @@ namespace BotCensus
         readonly int[] _counts = new int[System.Enum.GetValues(typeof(Bucket)).Length];  // indexed by Bucket
         readonly Dictionary<string, int> _factions = new Dictionary<string, int>();
         readonly List<CensusRow> _rows = new List<CensusRow>(12);
+        const float FadeSeconds = 0.35f;   // matches Dynamic Maps' minimap arrival (its DOTween transition time)
+
         float _timer;
         float _raidTimer;
+        float _fade;
         bool _inRaid;
         bool? _fika;
         GameWorld _world;
@@ -84,7 +88,7 @@ namespace BotCensus
 
         void Update()
         {
-            if (!_enabled.Value) return;
+            if (!_enabled.Value) { _fade = 0f; return; }   // re-enabling fades back in rather than snapping
 
             // Raid-state poll. Cache the GameWorld and only scan when we don't have one — FindObjectOfType is
             // expensive, and scanning it on a timer twice a second stutters on dense maps.
@@ -95,13 +99,23 @@ namespace BotCensus
                 bool was = _inRaid;
                 if (_world == null) _world = Object.FindObjectOfType<GameWorld>();
                 _inRaid = _world != null;
-                if (was && !_inRaid && _onlyInRaid.Value)   // left the raid: drop the last tally
+                if (was && !_inRaid)   // left the raid
                 {
-                    _rows.Clear();
-                    _factions.Clear();
-                    _timer = 0f;
+                    _fade = 0f;        // re-arm the fade-in for the next one
+                    if (_onlyInRaid.Value)   // drop the last tally
+                    {
+                        _rows.Clear();
+                        _factions.Clear();
+                        _timer = 0f;
+                    }
                 }
             }
+
+            // Ease the panel in the first time it actually lands on the battle HUD — the way Dynamic Maps'
+            // minimap arrives — instead of snapping on. Game-time delta, matching its DOTween default clock.
+            if (PaintEligible())
+                _fade = Mathf.Min(1f, _fade + Time.deltaTime / FadeSeconds);
+
             if (!_inRaid) return;
 
             _timer += Time.deltaTime;
@@ -246,9 +260,27 @@ namespace BotCensus
 
         void OnGUI()
         {
-            if (!_enabled.Value) return;
-            if (_onlyInRaid.Value && !_inRaid) return;
-            Hud.Draw(_rows, _fontSize.Value, _offsetRight.Value, _offsetTop.Value, _tarkovFont.Value, _bgOpacity.Value);
+            if (!_enabled.Value || _fade <= 0f || !PaintEligible()) return;
+            float alpha = _fade * (2f - _fade);   // ease-out quadratic — DOTween's default, the minimap's curve
+            Hud.Draw(_rows, _fontSize.Value, _offsetRight.Value, _offsetTop.Value, _tarkovFont.Value, _bgOpacity.Value, alpha);
+        }
+
+        // The panel is allowed on screen once you're in a raid with the battle HUD up (not the menu/hideout,
+        // and not behind a full-screen menu). Update() eases the fade in while this holds; OnGUI() draws while
+        // it holds — one predicate keeps the two in lockstep.
+        bool PaintEligible()
+        {
+            if (_onlyInRaid.Value && !_inRaid) return false;
+            if (_inRaid && MenuCoveringHud()) return false;   // step aside for the inventory / menu screens
+            return true;
+        }
+
+        // A full-screen menu (Tab inventory, map, trader, settings, death…) becomes the current screen and
+        // hides the game's own battle HUD. Key off that same signal so the overlay isn't left sitting on top.
+        static bool MenuCoveringHud()
+        {
+            var screens = CurrentScreenSingletonClass.Instance;
+            return screens == null || !screens.CheckCurrentScreen(EEftScreenType.BattleUI);
         }
     }
 

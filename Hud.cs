@@ -35,9 +35,10 @@ namespace BotCensus
         static Font _font;
         static bool _fontSearched;
 
-        public static void Draw(List<CensusRow> rows, int fontSize, int offsetRight, int offsetTop, bool useTarkovFont, float bgOpacity)
+        // fade is a 0..1 master alpha (raid-start ease-in); every colour's alpha is scaled by it.
+        public static void Draw(List<CensusRow> rows, int fontSize, int offsetRight, int offsetTop, bool useTarkovFont, float bgOpacity, float fade)
         {
-            if (rows.Count == 0) return;
+            if (rows.Count == 0 || fade <= 0f) return;
 
             Font font = useTarkovFont ? ResolveFont() : null;
             int pad = Mathf.RoundToInt(fontSize * 0.7f);
@@ -51,33 +52,43 @@ namespace BotCensus
             float y = offsetTop;
             var panel = new Rect(x, y, width, height);
 
-            Color bg = Background;
-            bg.a = bgOpacity;
-            DrawRect(panel, bg);
-            DrawBorder(panel, Border);
-            DrawRect(new Rect(panel.x, panel.y, 2f, panel.height), Accent);   // left accent strip
+            Color bg     = Fade(Background, bgOpacity * fade);
+            Color border = Fade(Border, Border.a * fade);
+            Color accent = Fade(Accent, Accent.a * fade);
+            Color label  = Fade(LabelColor, LabelColor.a * fade);
+            Color value  = Fade(ValueColor, ValueColor.a * fade);
 
-            Configure(_title, font, titleSize, FontStyle.Bold, TextAnchor.MiddleLeft, Accent);
-            Configure(_label, font, fontSize, FontStyle.Normal, TextAnchor.MiddleLeft, LabelColor);
-            Configure(_value, font, fontSize, FontStyle.Bold, TextAnchor.MiddleRight, ValueColor);
+            DrawRect(panel, bg);
+            DrawBorder(panel, border);
+            DrawRect(new Rect(panel.x, panel.y, 2f, panel.height), accent);   // left accent strip
+
+            Configure(_title, font, titleSize, FontStyle.Bold, TextAnchor.MiddleLeft, accent);
+            Configure(_label, font, fontSize, FontStyle.Normal, TextAnchor.MiddleLeft, label);
+            Configure(_value, font, fontSize, FontStyle.Bold, TextAnchor.MiddleRight, value);
 
             float left = panel.x + pad + 3f;
             float right = panel.x + width - pad;
             float innerWidth = right - left;
 
             GUI.Label(new Rect(left, y + 4f, innerWidth, titleHeight), "BOT CENSUS", _title);
-            DrawRect(new Rect(left, y + titleHeight + 2f, innerWidth, 1f), Border);
+            DrawRect(new Rect(left, y + titleHeight + 2f, innerWidth, 1f), border);
 
             float rowTop = y + titleHeight + 6f;
             for (int i = 0; i < rows.Count; i++)
             {
                 CensusRow r = rows[i];
                 var rect = new Rect(left, rowTop + i * rowHeight, innerWidth, rowHeight);
-                _label.normal.textColor = r.Accent ? Accent : LabelColor;
-                _value.normal.textColor = r.Accent ? Accent : ValueColor;
+                _label.normal.textColor = r.Accent ? accent : label;
+                _value.normal.textColor = r.Accent ? accent : value;
                 GUI.Label(rect, r.Label.ToUpperInvariant(), _label);
                 GUI.Label(rect, r.Value.ToString(), _value);
             }
+        }
+
+        static Color Fade(Color c, float alpha)
+        {
+            c.a = alpha;
+            return c;
         }
 
         static void Configure(GUIStyle style, Font font, int size, FontStyle fontStyle, TextAnchor anchor, Color color)

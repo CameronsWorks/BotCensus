@@ -26,7 +26,8 @@ Everything the stock counter does, plus the parts it drops:
   unrecognised still lands under **Other** rather than disappearing.
 
 The panel re-scans every few seconds, so patrols that spawn well into a raid (a RUAF push, a Black
-Division hunt) turn up on the next tick.
+Division hunt) turn up on the next tick. It eases in as the raid loads in rather than snapping onto the
+screen, so it settles alongside the rest of the HUD instead of popping over it.
 
 ## Install
 

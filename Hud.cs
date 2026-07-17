@@ -9,12 +9,16 @@ namespace BotCensus
         public string Label;
         public int Value;
         public bool Accent;   // faction rows are drawn in the accent colour
+        public string Icon;
+        public bool Rule;     // separated from the rows above by a hairline
 
-        public CensusRow(string label, int value, bool accent)
+        public CensusRow(string label, int value, bool accent, string icon, bool rule = false)
         {
             Label = label;
             Value = value;
             Accent = accent;
+            Icon = icon;
+            Rule = rule;
         }
     }
 
@@ -36,7 +40,8 @@ namespace BotCensus
         static bool _fontSearched;
 
         // fade is a 0..1 master alpha (raid-start ease-in); every colour's alpha is scaled by it.
-        public static void Draw(List<CensusRow> rows, int fontSize, int offsetRight, int offsetTop, bool useTarkovFont, float bgOpacity, float fade)
+        public static void Draw(List<CensusRow> rows, int fontSize, int offsetRight, int offsetTop, bool useTarkovFont,
+                                float bgOpacity, float fade, bool showIcons)
         {
             if (rows.Count == 0 || fade <= 0f) return;
 
@@ -45,8 +50,15 @@ namespace BotCensus
             int rowHeight = fontSize + 8;
             int titleSize = Mathf.Max(10, fontSize - 3);
             int titleHeight = titleSize + 10;
-            int width = Mathf.RoundToInt(fontSize * 12.5f) + pad * 2;
-            int height = titleHeight + rows.Count * rowHeight + pad;
+            int iconSize = showIcons ? Mathf.RoundToInt(fontSize * 0.95f) : 0;
+            int iconColumn = showIcons ? iconSize + Mathf.RoundToInt(fontSize * 0.5f) : 0;
+            int ruleGap = Mathf.RoundToInt(fontSize * 0.4f);
+
+            int rules = 0;
+            for (int i = 0; i < rows.Count; i++) if (rows[i].Rule) rules++;
+
+            int width = Mathf.RoundToInt(fontSize * 12.5f) + pad * 2 + iconColumn;
+            int height = titleHeight + rows.Count * rowHeight + rules * ruleGap + pad;
 
             float x = Screen.width - width - offsetRight;
             float y = offsetTop;
@@ -77,11 +89,28 @@ namespace BotCensus
             for (int i = 0; i < rows.Count; i++)
             {
                 CensusRow r = rows[i];
-                var rect = new Rect(left, rowTop + i * rowHeight, innerWidth, rowHeight);
-                _label.normal.textColor = r.Accent ? accent : label;
+                if (r.Rule)
+                {
+                    DrawRect(new Rect(left, rowTop + ruleGap * 0.5f, innerWidth, 1f), border);
+                    rowTop += ruleGap;
+                }
+
+                var rect = new Rect(left, rowTop, innerWidth, rowHeight);
+                Color ink = r.Accent ? accent : label;
+                _label.normal.textColor = ink;
                 _value.normal.textColor = r.Accent ? accent : value;
-                GUI.Label(rect, r.Label.ToUpperInvariant(), _label);
-                GUI.Label(rect, r.Value.ToString(), _value);
+
+                if (showIcons && r.Icon != null)
+                {
+                    Texture2D icon = Icons.Get(r.Icon);
+                    if (icon != null)
+                        DrawIcon(new Rect(rect.x, rect.y + (rowHeight - iconSize) * 0.5f, iconSize, iconSize), icon, ink);
+                }
+
+                var text = new Rect(rect.x + iconColumn, rect.y, innerWidth - iconColumn, rowHeight);
+                GUI.Label(text, r.Label.ToUpperInvariant(), _label);
+                GUI.Label(text, r.Value.ToString(), _value);
+                rowTop += rowHeight;
             }
         }
 
@@ -138,11 +167,25 @@ namespace BotCensus
             return _pixel;
         }
 
+        // StretchToFill, not ScaleToFit: Pixel() is 1x1, and fitting that to its aspect would letterbox
+        // every fill in the panel into a centred square.
         static void DrawRect(Rect rect, Color color)
+        {
+            Blit(rect, Pixel(), color, ScaleMode.StretchToFill);
+        }
+
+        // The glyphs are white, so tinting through GUI.color is what gives them their row's colour and
+        // the raid-start fade at the same time.
+        static void DrawIcon(Rect rect, Texture2D icon, Color color)
+        {
+            Blit(rect, icon, color, ScaleMode.ScaleToFit);
+        }
+
+        static void Blit(Rect rect, Texture texture, Color color, ScaleMode mode)
         {
             Color previous = GUI.color;
             GUI.color = color;
-            GUI.DrawTexture(rect, Pixel());
+            GUI.DrawTexture(rect, texture, mode);
             GUI.color = previous;
         }
 

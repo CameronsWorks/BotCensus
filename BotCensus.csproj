@@ -5,7 +5,7 @@
     <LangVersion>latest</LangVersion>
     <AssemblyName>BotCensus</AssemblyName>
     <RootNamespace>BotCensus</RootNamespace>
-    <Version>1.2.1</Version>
+    <Version>1.3.0</Version>
     <Nullable>disable</Nullable>
     <DebugType>none</DebugType>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -17,6 +17,12 @@
   <!-- Lets `dotnet build` target net472 without a separate targeting pack installed. -->
   <ItemGroup>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Row glyphs travel inside the DLL, so the plugin stays a single file to drop in. RootNamespace plus
+       folder plus filename is the logical name Icons.cs asks for: BotCensus.Icons.<name>.png -->
+  <ItemGroup>
+    <EmbeddedResource Include="Icons\*.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -42,6 +48,11 @@
     </Reference>
     <Reference Include="UnityEngine.TextRenderingModule">
       <HintPath>$(Managed)\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- LoadImage is an extension on Texture2D declared here, not a member of it. -->
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>$(Managed)\UnityEngine.ImageConversionModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Fika.Core">

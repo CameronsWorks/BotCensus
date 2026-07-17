@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace BotCensus
 {
-    [BepInPlugin(PluginId, "Bot Census", "1.2.1")]
+    [BepInPlugin(PluginId, "Bot Census", "1.3.0")]
     [BepInDependency("com.morebotsapi.tacticaltoaster", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.fika.core", BepInDependency.DependencyFlags.SoftDependency)]
     public class BotCensusPlugin : BaseUnityPlugin
@@ -30,11 +30,12 @@ namespace BotCensus
         ConfigEntry<string> _interval;
 
         ConfigEntry<RowVis> _showPmc, _showScav, _showRaider, _showRogue, _showBoss, _showGuard,
-                            _showGoon, _showCultist, _showInfected, _showBtr, _showOther;
+                            _showGoon, _showCultist, _showInfected, _showBtr, _showOther, _showTotal;
+        ConfigEntry<bool> _icons;
 
         readonly int[] _counts = new int[System.Enum.GetValues(typeof(Bucket)).Length];  // indexed by Bucket
-        readonly Dictionary<string, int> _factions = new Dictionary<string, int>();
-        readonly List<CensusRow> _rows = new List<CensusRow>(12);
+        readonly Dictionary<string, FactionTally> _factions = new Dictionary<string, FactionTally>();
+        readonly List<CensusRow> _rows = new List<CensusRow>(14);
         const float FadeSeconds = 0.35f;   // matches Dynamic Maps' minimap arrival (its DOTween transition time)
 
         float _timer;
@@ -62,6 +63,8 @@ namespace BotCensus
             _bgOpacity = Config.Bind("2. Display", "Background Opacity", 0.72f,
                 new ConfigDescription("Panel backing opacity. 0 is fully see-through, 1 is solid.",
                     new AcceptableValueRange<float>(0f, 1f)));
+            _icons = Config.Bind("2. Display", "Show Icons", true,
+                "Draw a glyph beside each row. Off narrows the panel to text only.");
 
             _splitRogue = Config.Bind("3. Rows", "Split Rogue And Raider", true,
                 "On: separate Raider and Rogue rows. Off: one 'Raider / Rogue' row to save space.");
@@ -78,6 +81,9 @@ namespace BotCensus
             _showInfected = Config.Bind("3. Rows", "Infected", RowVis.WhenPresent, RowHelp);
             _showBtr      = Config.Bind("3. Rows", "BTR",      RowVis.WhenPresent, RowHelp);
             _showOther    = Config.Bind("3. Rows", "Other",    RowVis.WhenPresent, RowHelp);
+            _showTotal    = Config.Bind("3. Rows", "Total",    RowVis.Always,
+                new ConfigDescription("Every bot on the map, counted under a rule at the foot of the panel. "
+                    + "Rows you've hidden still count towards it."));
 
             _interval = Config.Bind("4. Performance", "Update Interval", "5s",
                 new ConfigDescription("How often the raid is recounted.",
@@ -140,6 +146,7 @@ namespace BotCensus
         {
             for (int i = 0; i < _counts.Length; i++) _counts[i] = 0;
             _factions.Clear();
+            MoreBotsBridge.Invalidate();
 
             if (FikaLoaded && FikaSource.TryClassify(this))
             {
@@ -183,10 +190,11 @@ namespace BotCensus
 
             // (A) Custom factions register WildSpawnType integers above the vanilla ceiling (67).
             //     Resolve these first so a Savage-side faction bot is never shadowed into another bucket.
+            //     A faction registers a role per rank, so keep the boss and his escort apart here rather
+            //     than folding both into one tally the way this used to.
             if (r > 67)
             {
-                string faction = MoreBotsBridge.GetFaction(role) ?? Classifier.RangeFallback(r) ?? "Custom";
-                Bump(faction);
+                Bump(MoreBotsBridge.Label(r), MoreBotsBridge.IsEscort(role));
                 return;
             }
 
@@ -202,67 +210,104 @@ namespace BotCensus
             _counts[(int)Classifier.Vanilla(role)]++;
         }
 
-        void Bump(string faction)
+        void Bump(string faction, bool escort)
         {
-            _factions.TryGetValue(faction, out int c);
-            _factions[faction] = c + 1;
+            _factions.TryGetValue(faction, out FactionTally tally);
+            if (escort) tally.Escorts++;
+            else tally.Bosses++;
+            _factions[faction] = tally;
         }
 
         void BuildRows()
         {
             _rows.Clear();
-            Row("PMC", Bucket.Pmc, _showPmc);
-            Row("Scav", Bucket.Scav, _showScav);
+            Row("PMC", Bucket.Pmc, _showPmc, Icons.Pmc);
+            Row("Scav", Bucket.Scav, _showScav, Icons.Scav);
 
             if (_splitRogue.Value)
             {
-                Row("Raider", Bucket.Raider, _showRaider);
-                Row("Rogue", Bucket.Rogue, _showRogue);
+                Row("Raider", Bucket.Raider, _showRaider, Icons.Raider);
+                Row("Rogue", Bucket.Rogue, _showRogue, Icons.Rogue);
             }
             else
             {
                 int both = _counts[(int)Bucket.Raider] + _counts[(int)Bucket.Rogue];
-                AddRow("Raider / Rogue", both, _showRaider, false);
+                AddRow("Raider / Rogue", both, _showRaider, false, Icons.Raider);
             }
 
             if (_splitBoss.Value)
             {
-                Row("Boss", Bucket.Boss, _showBoss);
-                Row("Guard", Bucket.Guard, _showGuard);
+                Row("Boss", Bucket.Boss, _showBoss, Icons.Boss);
+                Row("Guard", Bucket.Guard, _showGuard, Icons.Guard);
             }
             else
             {
                 int both = _counts[(int)Bucket.Boss] + _counts[(int)Bucket.Guard];
-                AddRow("Boss / Guard", both, _showBoss, false);
+                AddRow("Boss / Guard", both, _showBoss, false, Icons.Boss);
             }
-            AddRow("Goons", _counts[(int)Bucket.Goon], _showGoon, true);   // accent — a marquee target like the factions
-            Row("Cultist", Bucket.Cultist, _showCultist);
-            Row("Infected", Bucket.Infected, _showInfected);
-            Row("BTR", Bucket.Btr, _showBtr);
+            AddRow("Goons", _counts[(int)Bucket.Goon], _showGoon, true, Icons.Goons);   // accent — a marquee target like the factions
+            Row("Cultist", Bucket.Cultist, _showCultist, Icons.Cultist);
+            Row("Infected", Bucket.Infected, _showInfected, Icons.Infected);
+            Row("BTR", Bucket.Btr, _showBtr, Icons.Btr);
 
-            foreach (var faction in _factions)
-                _rows.Add(new CensusRow(faction.Key, faction.Value, true));
-
-            Row("Other", Bucket.Other, _showOther);
+            FactionRows();
+            Row("Other", Bucket.Other, _showOther, Icons.Other);
+            TotalRow();
         }
 
-        void Row(string label, Bucket bucket, ConfigEntry<RowVis> vis)
+        // A faction that fields a boss gets him and his escort on separate lines, on the same toggle the
+        // vanilla bosses use — so you can see whether the man himself is still standing or you're just
+        // mopping up guards. Factions that are a flat squad (Black Division, RUAF, UNTAR) have no boss to
+        // separate and keep their single line.
+        void FactionRows()
         {
-            AddRow(label, _counts[(int)bucket], vis, false);
+            foreach (var faction in _factions)
+            {
+                FactionTally tally = faction.Value;
+                if (_splitBoss.Value && MoreBotsBridge.FactionHasBoss(faction.Key))
+                {
+                    if (tally.Bosses > 0) _rows.Add(new CensusRow(faction.Key, tally.Bosses, true, Icons.Boss));
+                    if (tally.Escorts > 0) _rows.Add(new CensusRow(faction.Key + " Guard", tally.Escorts, true, Icons.Guard));
+                }
+                else
+                {
+                    _rows.Add(new CensusRow(faction.Key, tally.Bosses + tally.Escorts, true, Icons.Faction));
+                }
+            }
         }
 
-        void AddRow(string label, int value, ConfigEntry<RowVis> vis, bool accent)
+        // Counted off the tallies rather than the rows above it, so a row you've hidden or merged doesn't
+        // quietly change the total.
+        void TotalRow()
+        {
+            if (_showTotal.Value == RowVis.Hidden) return;
+
+            int total = 0;
+            for (int i = 0; i < _counts.Length; i++) total += _counts[i];
+            foreach (var faction in _factions) total += faction.Value.Bosses + faction.Value.Escorts;
+
+            if (_showTotal.Value == RowVis.WhenPresent && total <= 0) return;
+            _rows.Add(new CensusRow("Total Bots", total, false, Icons.Total, true));
+        }
+
+        void Row(string label, Bucket bucket, ConfigEntry<RowVis> vis, string icon)
+        {
+            AddRow(label, _counts[(int)bucket], vis, false, icon);
+        }
+
+        void AddRow(string label, int value, ConfigEntry<RowVis> vis, bool accent, string icon)
         {
             if (vis.Value == RowVis.Hidden) return;
             if (vis.Value == RowVis.WhenPresent && value <= 0) return;
-            _rows.Add(new CensusRow(label, value, accent));
+            _rows.Add(new CensusRow(label, value, accent, icon));
         }
 
         void OnGUI()
         {
             if (!_enabled.Value || _fade <= 0f || !PaintEligible()) return;
             float alpha = _fade * (2f - _fade);   // ease-out quadratic — DOTween's default, the minimap's curve
-            Hud.Draw(_rows, _fontSize.Value, _offsetRight.Value, _offsetTop.Value, _tarkovFont.Value, _bgOpacity.Value, alpha);
+            Hud.Draw(_rows, _fontSize.Value, _offsetRight.Value, _offsetTop.Value, _tarkovFont.Value,
+                _bgOpacity.Value, alpha, _icons.Value);
         }
 
         // The panel is allowed on screen once you're in a raid with the battle HUD up (not the menu/hideout,
@@ -282,6 +327,14 @@ namespace BotCensus
             var screens = CurrentScreenSingletonClass.Instance;
             return screens == null || !screens.CheckCurrentScreen(EEftScreenType.BattleUI);
         }
+    }
+
+    // A custom faction registers one role per rank. Splitting the tally at count time is what lets a boss
+    // and his escort land on separate lines later.
+    internal struct FactionTally
+    {
+        public int Bosses;
+        public int Escorts;
     }
 
     public enum Bucket

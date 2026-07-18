@@ -29,8 +29,9 @@ MoreBotsAPI's live registry so each lands on its own line.
 - **Everything, added up.** A **Total Bots** line under a rule at the foot of the panel. It counts off the
   tally rather than the lines above it, so rows you've merged or hidden still make the total.
 
-Every line carries a glyph, drawn in that row's colour. Turn them off from F12 if you want the panel
-narrower.
+Every line carries a glyph, drawn in that row's colour — a scav in his balaclava, the BTR on its eight
+wheels, the cultists' own sigil, and Black Division under the scorpion. Turn them off from F12 if you want
+the panel narrower.
 
 The panel re-scans every few seconds, so patrols that spawn well into a raid (a RUAF push, a Black
 Division hunt) turn up on the next tick. It eases in as the raid loads in rather than snapping onto the

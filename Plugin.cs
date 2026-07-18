@@ -266,8 +266,8 @@ namespace BotCensus
                 FactionTally tally = faction.Value;
                 if (_splitBoss.Value && MoreBotsBridge.FactionHasBoss(faction.Key))
                 {
-                    if (tally.Bosses > 0) _rows.Add(new CensusRow(faction.Key, tally.Bosses, true, Icons.Boss));
-                    if (tally.Escorts > 0) _rows.Add(new CensusRow(faction.Key + " Guard", tally.Escorts, true, Icons.Guard));
+                    if (tally.Bosses > 0) _rows.Add(new CensusRow(faction.Key, tally.Bosses, true, Icons.ForFactionBoss(faction.Key)));
+                    if (tally.Escorts > 0) _rows.Add(new CensusRow(faction.Key + " Guard", tally.Escorts, true, Icons.ForFactionGuard(faction.Key)));
                 }
                 else
                 {

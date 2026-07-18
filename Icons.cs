@@ -31,10 +31,35 @@ namespace BotCensus
             { "Black Division", "blackdivision" },
         };
 
+        // A faction that fields a boss can also give its leader and escort their own crest — Wedge's are the
+        // Black Division shield under a crown, and the same shield over a sword. Anything not listed falls
+        // back to the generic Boss / Guard glyph.
+        static readonly Dictionary<string, string> ByFactionBoss = new Dictionary<string, string>
+        {
+            { "Wedge", "wedge" },
+        };
+
+        static readonly Dictionary<string, string> ByFactionGuard = new Dictionary<string, string>
+        {
+            { "Wedge", "wedgeguard" },
+        };
+
         public static string ForFaction(string faction)
         {
             string icon;
             return ByFaction.TryGetValue(faction, out icon) ? icon : Faction;
+        }
+
+        public static string ForFactionBoss(string faction)
+        {
+            string icon;
+            return ByFactionBoss.TryGetValue(faction, out icon) ? icon : Boss;
+        }
+
+        public static string ForFactionGuard(string faction)
+        {
+            string icon;
+            return ByFactionGuard.TryGetValue(faction, out icon) ? icon : Guard;
         }
 
         // Null is a legitimate cached value: a glyph that failed to load stays missing rather than

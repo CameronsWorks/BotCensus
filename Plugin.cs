@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace BotCensus
 {
-    [BepInPlugin(PluginId, "Bot Census", "1.3.0")]
+    [BepInPlugin(PluginId, "Bot Census", "1.3.1")]
     [BepInDependency("com.morebotsapi.tacticaltoaster", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.fika.core", BepInDependency.DependencyFlags.SoftDependency)]
     public class BotCensusPlugin : BaseUnityPlugin
@@ -94,7 +94,10 @@ namespace BotCensus
 
         void Update()
         {
-            if (!_enabled.Value) { _fade = 0f; return; }   // re-enabling fades back in rather than snapping
+            // Drops the world reference as well: this returns above the raid poll, so without it switching
+            // the panel off mid-raid pins that raid's GameWorld, and every player hanging off it, until the
+            // panel is switched back on. Re-enabling still fades in rather than snapping.
+            if (!_enabled.Value) { _fade = 0f; _world = null; return; }
 
             // Raid-state poll. Cache the GameWorld and only scan when we don't have one — FindObjectOfType is
             // expensive, and scanning it on a timer twice a second stutters on dense maps.
@@ -144,18 +147,44 @@ namespace BotCensus
 
         void Recount()
         {
-            for (int i = 0; i < _counts.Length; i++) _counts[i] = 0;
-            _factions.Clear();
+            ResetTally();
             MoreBotsBridge.Invalidate();
 
-            if (FikaLoaded && FikaSource.TryClassify(this))
+            if (FikaLoaded && !_fikaFailed && TryFika())
             {
                 BuildRows();
                 return;
             }
 
+            ResetTally();   // a Fika pass that threw part-way leaves its partial tally behind
             CountSolo();
             BuildRows();
+        }
+
+        void ResetTally()
+        {
+            for (int i = 0; i < _counts.Length; i++) _counts[i] = 0;
+            _factions.Clear();
+        }
+
+        // FikaSource binds Fika's types at compile time, so a rename or a moved namespace arrives here as a
+        // throw rather than a false. Latch it and stay on the local count for the rest of the session: that
+        // still sees every bot, it only loses the ability to tell a remote client's AI apart, which beats a
+        // frozen panel and a stack trace every few seconds for the whole raid.
+        bool _fikaFailed;
+
+        bool TryFika()
+        {
+            try
+            {
+                return FikaSource.TryClassify(this);
+            }
+            catch (System.Exception ex)
+            {
+                _fikaFailed = true;
+                Logger.LogWarning("[Bot Census] Fika bot source unavailable, counting locally: " + ex.Message);
+                return false;
+            }
         }
 
         bool FikaLoaded

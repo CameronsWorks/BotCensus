@@ -12,7 +12,10 @@ namespace BotCensus
                 return false;
 
             foreach (var player in handler.Players.Values)
+            {
+                if (player == null) continue;
                 plugin.Classify(player, player.IsObservedAI);
+            }
 
             return true;
         }

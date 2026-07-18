@@ -43,6 +43,11 @@ Put the `BotCensus` folder in `BepInEx/plugins` and launch. Nothing to configure
 **MoreBotsAPI** (custom-faction names) and **Fika** (co-op) are optional; each is used automatically
 when it's installed and ignored when it isn't.
 
+MoreBotsAPI is reached entirely by reflection, and Fika's types sit on a single path that only runs when
+Fika is actually installed — so neither can stop Bot Census loading, with or without Wedge, Black Division
+or any other faction mod. If one of them changes shape in a later version, the panel notes it once in the
+log and carries on with what it can still read: custom factions fall back to their known ID ranges.
+
 ## Settings
 
 In-game **F12**, or `BepInEx/config/com.sipto.botcensus.cfg`:
@@ -68,6 +73,10 @@ off entirely. PMC, Scav and Total start on Always, the rest on WhenPresent.
 
 On a Fika raid it counts off the shared player list, so your numbers match the host's. It only reads
 state and draws to your own screen; nothing networked, no patches.
+
+If a Fika update ever moves what that reads, it drops back to counting locally for the rest of the session
+rather than leaving the panel stuck. You keep a working tally; it just stops telling a remote client's AI
+apart from your own.
 
 ## Panel position
 

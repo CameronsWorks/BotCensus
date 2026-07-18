@@ -271,7 +271,7 @@ namespace BotCensus
                 }
                 else
                 {
-                    _rows.Add(new CensusRow(faction.Key, tally.Bosses + tally.Escorts, true, Icons.Faction));
+                    _rows.Add(new CensusRow(faction.Key, tally.Bosses + tally.Escorts, true, Icons.ForFaction(faction.Key)));
                 }
             }
         }

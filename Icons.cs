@@ -24,6 +24,19 @@ namespace BotCensus
         public const string Other = "other";
         public const string Total = "total";
 
+        // Custom factions share the generic Faction shield unless they have their own art here, keyed by
+        // the display name Bump() tallies under (MoreBotsBridge.Prettify / RangeFallback).
+        static readonly Dictionary<string, string> ByFaction = new Dictionary<string, string>
+        {
+            { "Black Division", "blackdivision" },
+        };
+
+        public static string ForFaction(string faction)
+        {
+            string icon;
+            return ByFaction.TryGetValue(faction, out icon) ? icon : Faction;
+        }
+
         // Null is a legitimate cached value: a glyph that failed to load stays missing rather than
         // being retried on every frame OnGUI runs.
         static readonly Dictionary<string, Texture2D> Loaded = new Dictionary<string, Texture2D>();

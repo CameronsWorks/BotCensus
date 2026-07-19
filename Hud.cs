@@ -41,7 +41,7 @@ namespace BotCensus
 
         // fade is a 0..1 master alpha (raid-start ease-in); every colour's alpha is scaled by it.
         public static void Draw(List<CensusRow> rows, int fontSize, int offsetRight, int offsetTop, bool useTarkovFont,
-                                float bgOpacity, float fade, bool showIcons)
+                                float bgOpacity, float fade, bool showIcons, float iconScale)
         {
             if (rows.Count == 0 || fade <= 0f) return;
 
@@ -50,7 +50,8 @@ namespace BotCensus
             int rowHeight = fontSize + 8;
             int titleSize = Mathf.Max(10, fontSize - 3);
             int titleHeight = titleSize + 10;
-            int iconSize = showIcons ? Mathf.RoundToInt(fontSize * 0.95f) : 0;
+            // Capped at the row height: past that a scaled-up glyph would bleed into the rows either side.
+            int iconSize = showIcons ? Mathf.Min(Mathf.RoundToInt(fontSize * 0.95f * iconScale), rowHeight) : 0;
             int iconColumn = showIcons ? iconSize + Mathf.RoundToInt(fontSize * 0.5f) : 0;
             int ruleGap = Mathf.RoundToInt(fontSize * 0.4f);
 

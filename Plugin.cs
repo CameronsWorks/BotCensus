@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace BotCensus
 {
-    [BepInPlugin(PluginId, "Bot Census", "1.3.1")]
+    [BepInPlugin(PluginId, "Bot Census", "1.3.2")]
     [BepInDependency("com.morebotsapi.tacticaltoaster", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.fika.core", BepInDependency.DependencyFlags.SoftDependency)]
     public class BotCensusPlugin : BaseUnityPlugin
@@ -32,6 +32,7 @@ namespace BotCensus
         ConfigEntry<RowVis> _showPmc, _showScav, _showRaider, _showRogue, _showBoss, _showGuard,
                             _showGoon, _showCultist, _showInfected, _showBtr, _showOther, _showTotal;
         ConfigEntry<bool> _icons;
+        ConfigEntry<float> _iconScale;
 
         readonly int[] _counts = new int[System.Enum.GetValues(typeof(Bucket)).Length];  // indexed by Bucket
         readonly Dictionary<string, FactionTally> _factions = new Dictionary<string, FactionTally>();
@@ -52,8 +53,13 @@ namespace BotCensus
             _onlyInRaid = Config.Bind("1. General", "Only In Raid", true,
                 "Hide the overlay in the menu and hideout; only draw it once you're in a raid.");
 
+            // Everything in the panel keys off this — row height, glyph size, the icon column and the panel
+            // width are all derived from it, so it doubles as the overall scale. The ceiling is the glyph
+            // art's own resolution: at 64 a row glyph draws about 1:1 with its source and stays crisp.
             _fontSize = Config.Bind("2. Display", "Font Size", 16,
-                new ConfigDescription("Text size of the overlay.", new AcceptableValueRange<int>(10, 30)));
+                new ConfigDescription("Overall size of the panel. Text, glyphs, row height and width all "
+                    + "scale from this, so raise it on a large or high-resolution display.",
+                    new AcceptableValueRange<int>(10, 64)));
             _offsetRight = Config.Bind("2. Display", "Offset Right", 20,
                 "Distance from the right edge of the screen.");
             _offsetTop = Config.Bind("2. Display", "Offset Top", 40,
@@ -65,6 +71,11 @@ namespace BotCensus
                     new AcceptableValueRange<float>(0f, 1f)));
             _icons = Config.Bind("2. Display", "Show Icons", true,
                 "Draw a glyph beside each row. Off narrows the panel to text only.");
+            _iconScale = Config.Bind("2. Display", "Icon Scale", 1f,
+                new ConfigDescription("Glyph size relative to the text. 1 keeps them level with the font; "
+                    + "raise it if the icons read small next to the numbers. Capped at the row height so "
+                    + "a glyph can never spill into the row above or below.",
+                    new AcceptableValueRange<float>(0.6f, 1.5f)));
 
             _splitRogue = Config.Bind("3. Rows", "Split Rogue And Raider", true,
                 "On: separate Raider and Rogue rows. Off: one 'Raider / Rogue' row to save space.");
@@ -336,7 +347,7 @@ namespace BotCensus
             if (!_enabled.Value || _fade <= 0f || !PaintEligible()) return;
             float alpha = _fade * (2f - _fade);   // ease-out quadratic — DOTween's default, the minimap's curve
             Hud.Draw(_rows, _fontSize.Value, _offsetRight.Value, _offsetTop.Value, _tarkovFont.Value,
-                _bgOpacity.Value, alpha, _icons.Value);
+                _bgOpacity.Value, alpha, _icons.Value, _iconScale.Value);
         }
 
         // The panel is allowed on screen once you're in a raid with the battle HUD up (not the menu/hideout,

@@ -56,11 +56,12 @@ In-game **F12**, or `BepInEx/config/com.sipto.botcensus.cfg`:
 |---|---|---|
 | Enable | on | Master toggle |
 | Only In Raid | on | Keeps it off the menu and hideout screens |
-| Font Size | 16 | 10–30 |
+| Font Size | 16 | 10–64. Scales the whole panel, not just the text — glyphs, row height and width all key off it. Raise it on a large or high-resolution display; on 4K, 32–40 sits about where 16 does on 1080p |
 | Offset Right / Top | 20 / 40 | Where the panel sits |
 | Use Tarkov Font | on | The game's Bender face, with fallbacks |
 | Background Opacity | 0.72 | Panel backing, 0 (clear) to 1 (solid) |
 | Show Icons | on | Off drops the glyph column and narrows the panel |
+| Icon Scale | 1.0 | 0.6–1.5. Glyph size relative to the text, capped at the row height so it can't spill into neighbouring rows |
 | Split Rogue And Raider | on | Off merges them into a single row |
 | Split Boss And Guard | on | Off merges them into a single row. Also merges a custom boss back in with his guards |
 | Update Interval | 5s | 5s / 10s / 15s / 30s / 1min |

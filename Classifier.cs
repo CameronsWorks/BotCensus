@@ -53,13 +53,16 @@ namespace BotCensus
             return Bucket.Other;
         }
 
-        // Used only when MoreBotsAPI is not installed: the faction int ranges are stable and
-        // self-documenting. Prefer the live registry (MoreBotsBridge) when it is available.
+        // The floor under both MoreBotsAPI lookups: the faction int ranges are stable and
+        // self-documenting, and they still answer when the API is absent or has been reshaped under us.
+        // Prefer the live registry (MoreBotsBridge) when it is available.
         public static string RangeFallback(int r)
         {
             if (r >= 848400 && r <= 848405) return "RUAF";
             if (r == 848406) return "Remnant";
             if (r >= 848420 && r <= 848423) return "Black Division";
+            if (r >= 848430 && r <= 848431) return "Wedge";
+            if (r >= 868588 && r <= 868589) return "Blackout";
             if (r >= 1170 && r <= 1173) return "UNTAR";
             return null;
         }

@@ -74,8 +74,10 @@
     </Reference>
   </ItemGroup>
 
-  <!-- Drop the built plugin straight into the game after each build. -->
-  <Target Name="DeployToGame" AfterTargets="Build">
+  <!-- Drop the built plugin straight into the game after each build. SkipDeploy builds without touching
+       the install, which is what you want while the shared loadout is live: without it, building to check
+       a change compiles silently puts that change into a session your friends are in. -->
+  <Target Name="DeployToGame" AfterTargets="Build" Condition="'$(SkipDeploy)' != 'true'">
     <MakeDir Directories="$(SptRoot)\BepInEx\plugins\BotCensus" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(SptRoot)\BepInEx\plugins\BotCensus" />
   </Target>

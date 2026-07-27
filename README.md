@@ -75,6 +75,11 @@ off entirely. PMC, Scav and Total start on Always, the rest on WhenPresent.
 On a Fika raid it counts off the shared player list, so your numbers match the host's. It only reads
 state and draws to your own screen; nothing networked, no patches.
 
+Custom factions are named the same for everyone in the raid. MoreBotsAPI builds its faction list from a
+request only the host's machine makes, so a joining client used to see `Custom` where the host saw the
+faction's name; the names now come off the metadata each faction mod registers at startup, which every
+machine has.
+
 If a Fika update ever moves what that reads, it drops back to counting locally for the rest of the session
 rather than leaving the panel stuck. You keep a working tally; it just stops telling a remote client's AI
 apart from your own.

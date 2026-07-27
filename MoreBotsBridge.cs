@@ -83,6 +83,8 @@ namespace BotCensus
         static bool _registryResolved;
         static MethodInfo _getRegistry;
         static PropertyInfo _isFollower;
+        static PropertyInfo _sain;
+        static FieldInfo _section;
 
         static void ResolveRegistry()
         {
@@ -96,6 +98,13 @@ namespace BotCensus
             _getRegistry = manager.GetMethod("GetCustomWildSpawnTypeDict",
                 BindingFlags.Public | BindingFlags.Static, null, Type.EmptyTypes, null);
             _isFollower = custom.GetProperty("IsFollower", BindingFlags.Public | BindingFlags.Instance);
+
+            // Optional: the faction's display name, for when the live registry can't answer. Bound
+            // separately from the two above so a reshaped SAIN block costs us the names and not the
+            // boss/escort split as well. Section is a field, not a property.
+            _sain = custom.GetProperty("SAINSettings", BindingFlags.Public | BindingFlags.Instance);
+            Type sain = FindType("MoreBotsAPI.SAINSettings");
+            if (sain != null) _section = sain.GetField("Section", BindingFlags.Public | BindingFlags.Instance);
         }
 
         // The dictionary handed back is the live one, so hold it rather than re-invoking per bot per tick.
@@ -126,6 +135,7 @@ namespace BotCensus
         public static void Invalidate()
         {
             _bossFactions = null;
+            _labels.Clear();
         }
 
         static Dictionary<string, bool> BossFactions()
@@ -179,11 +189,58 @@ namespace BotCensus
             }
         }
 
+        // The name each faction mod hands its prepatcher, which is where its own SAIN settings get their
+        // heading — and which is exactly the string this panel wants. Unlike the faction list above it
+        // needs no server round trip and no raid, because BepInEx fills it during preloading on every
+        // machine. That is what makes it the answer on a Fika client, where the faction list is never
+        // fetched at all and every custom bot would otherwise read as "Custom".
+        //
+        // Its own failure latch: this path is a fallback, and letting it trip the bridge-wide one would
+        // let a reshaped SAIN block take down the authoritative source on the host as well.
+        static bool _sectionBroken;
+
+        static string RegistryFaction(int role)
+        {
+            IDictionary registry = Registry();
+            if (registry == null || _sectionBroken || _sain == null || _section == null) return null;
+
+            try
+            {
+                object custom = registry[role];
+                if (custom == null) return null;
+
+                object sain = _sain.GetValue(custom, null);
+                return sain == null ? null : Prettify(_section.GetValue(sain) as string);
+            }
+            catch (Exception ex)
+            {
+                _sectionBroken = true;
+                Debug.LogWarning("[Bot Census] MoreBotsAPI faction names unavailable, falling back to " +
+                                 "name ranges: " + ex.Message);
+                return null;
+            }
+        }
+
         // The row a custom role lands on. Kept in one place so the faction shape above is keyed by exactly
-        // the same string the panel prints.
+        // the same string the panel prints. Memoised: three reflection hops per bot per recount, and
+        // BossFactions() asks again for every registered role on top of that.
+        static readonly Dictionary<int, string> _labels = new Dictionary<int, string>();
+
         public static string Label(int role)
         {
-            return GetFaction((WildSpawnType)role) ?? Classifier.RangeFallback(role) ?? "Custom";
+            string label;
+            if (_labels.TryGetValue(role, out label)) return label;
+
+            // Known ranges sit ahead of the registry on purpose. A faction mod's SAIN section is whatever
+            // reads well in SAIN's own settings menu, which is not always a faction name — Blackout files
+            // its boss under "Bosses" and its guards under "Black Division", which on a client would put a
+            // row called BOSSES on the panel and quietly add its guards to the real Black Division's
+            // count. Our own names are also what the glyph table is keyed by. The registry stays as the
+            // answer for factions nobody has written a range for.
+            return _labels[role] = GetFaction((WildSpawnType)role)
+                                ?? Classifier.RangeFallback(role)
+                                ?? RegistryFaction(role)
+                                ?? "Custom";
         }
 
         static string Prettify(string raw)
@@ -195,6 +252,9 @@ namespace BotCensus
                 case "remnant": return "Remnant";
                 case "untar": return "UNTAR";
                 case "blackdiv": return "Black Division";
+                // Blackout's Labs garrison. Its faction is named for who they are rather than the mod, and
+                // "Blackdivision" one word next to Black Division's own row reads like a typo.
+                case "blackdivision": return "Blackout";
                 default: return char.ToUpperInvariant(raw[0]) + raw.Substring(1);
             }
         }

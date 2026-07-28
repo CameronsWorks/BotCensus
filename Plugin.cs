@@ -2,13 +2,14 @@ using System.Collections.Generic;
 using BepInEx;
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
+using Comfort.Common;
 using EFT;
 using EFT.UI.Screens;
 using UnityEngine;
 
 namespace BotCensus
 {
-    [BepInPlugin(PluginId, "Bot Census", "1.3.3")]
+    [BepInPlugin(PluginId, "Bot Census", "1.3.4")]
     [BepInDependency("com.morebotsapi.tacticaltoaster", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.fika.core", BepInDependency.DependencyFlags.SoftDependency)]
     public class BotCensusPlugin : BaseUnityPlugin
@@ -110,14 +111,19 @@ namespace BotCensus
             // panel is switched back on. Re-enabling still fades in rather than snapping.
             if (!_enabled.Value) { _fade = 0f; _world = null; return; }
 
-            // Raid-state poll. Cache the GameWorld and only scan when we don't have one — FindObjectOfType is
-            // expensive, and scanning it on a timer twice a second stutters on dense maps.
+            // Raid-state poll. The game registers the live world in Singleton<GameWorld> and swaps it on
+            // every scene change, so read it fresh each poll — it's a static field, there's nothing worth
+            // caching. The old cached FindObjectOfType lookup could outlive its raid: the hideout runs a
+            // GameWorld too (HideoutGameWorld), and once the cache latched onto that one, its null check
+            // held and the panel spent every following raid counting an empty world until the enable
+            // toggle dropped the reference. The hideout is not a raid; treat it as no world at all.
             _raidTimer += Time.deltaTime;
             if (_raidTimer >= 0.5f)
             {
                 _raidTimer = 0f;
                 bool was = _inRaid;
-                if (_world == null) _world = Object.FindObjectOfType<GameWorld>();
+                var world = Singleton<GameWorld>.Instance;
+                _world = (world != null && !(world is HideoutGameWorld)) ? world : null;
                 _inRaid = _world != null;
                 if (was && !_inRaid)   // left the raid
                 {

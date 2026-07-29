@@ -56,6 +56,7 @@ In-game **F12**, or `BepInEx/config/com.sipto.botcensus.cfg`:
 |---|---|---|
 | Enable | on | Master toggle |
 | Only In Raid | on | Keeps it off the menu and hideout screens |
+| Toggle Key | unbound | Show/hide the panel from the keyboard mid-raid. Same switch as Enable. Works with other keys held, so toggling on the move is fine |
 | Font Size | 16 | 10–64. Scales the whole panel, not just the text — glyphs, row height and width all key off it. Raise it on a large or high-resolution display; on 4K, 32–40 sits about where 16 does on 1080p |
 | Offset Right / Top | 20 / 40 | Where the panel sits |
 | Use Tarkov Font | on | The game's Bender face, with fallbacks |

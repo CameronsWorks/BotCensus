@@ -5,7 +5,7 @@
     <LangVersion>latest</LangVersion>
     <AssemblyName>BotCensus</AssemblyName>
     <RootNamespace>BotCensus</RootNamespace>
-    <Version>1.3.4</Version>
+    <Version>1.4.0</Version>
     <Nullable>disable</Nullable>
     <DebugType>none</DebugType>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -53,6 +53,11 @@
     <!-- LoadImage is an extension on Texture2D declared here, not a member of it. -->
     <Reference Include="UnityEngine.ImageConversionModule">
       <HintPath>$(Managed)\UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Input sits here on this Unity, not in CoreModule. -->
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>$(Managed)\UnityEngine.InputLegacyModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Fika.Core">

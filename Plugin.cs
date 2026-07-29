@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using BepInEx;
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
@@ -9,7 +10,7 @@ using UnityEngine;
 
 namespace BotCensus
 {
-    [BepInPlugin(PluginId, "Bot Census", "1.3.4")]
+    [BepInPlugin(PluginId, "Bot Census", "1.4.0")]
     [BepInDependency("com.morebotsapi.tacticaltoaster", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.fika.core", BepInDependency.DependencyFlags.SoftDependency)]
     public class BotCensusPlugin : BaseUnityPlugin
@@ -21,6 +22,7 @@ namespace BotCensus
 
         ConfigEntry<bool> _enabled;
         ConfigEntry<bool> _onlyInRaid;
+        ConfigEntry<KeyboardShortcut> _toggleKey;
         ConfigEntry<int> _fontSize;
         ConfigEntry<int> _offsetRight;
         ConfigEntry<int> _offsetTop;
@@ -53,6 +55,9 @@ namespace BotCensus
                 "Toggle the on-screen bot census on or off.");
             _onlyInRaid = Config.Bind("1. General", "Only In Raid", true,
                 "Hide the overlay in the menu and hideout; only draw it once you're in a raid.");
+            _toggleKey = Config.Bind("1. General", "Toggle Key", KeyboardShortcut.Empty,
+                "Show or hide the census from the keyboard mid-raid. Drives the same switch as Enable, "
+                + "so the checkbox above follows along.");
 
             // Everything in the panel keys off this — row height, glyph size, the icon column and the panel
             // width are all derived from it, so it doubles as the overall scale. The ceiling is the glyph
@@ -106,6 +111,14 @@ namespace BotCensus
 
         void Update()
         {
+            // KeyboardShortcut.IsDown refuses to fire while any unrelated key is held, and in a raid one
+            // always is (W, usually). Check the bind by hand: main key just pressed, chosen modifiers down,
+            // everything else left out of it. Modifiers only allocates on the press frame.
+            KeyboardShortcut key = _toggleKey.Value;
+            if (key.MainKey != KeyCode.None && Input.GetKeyDown(key.MainKey)
+                && key.Modifiers.All(Input.GetKey))
+                _enabled.Value = !_enabled.Value;
+
             // Drops the world reference as well: this returns above the raid poll, so without it switching
             // the panel off mid-raid pins that raid's GameWorld, and every player hanging off it, until the
             // panel is switched back on. Re-enabling still fades in rather than snapping.

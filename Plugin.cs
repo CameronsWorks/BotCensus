@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace BotCensus
 {
-    [BepInPlugin(PluginId, "Bot Census", "1.4.0")]
+    [BepInPlugin(PluginId, "Bot Census", "1.5.0")]
     [BepInDependency("com.morebotsapi.tacticaltoaster", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.fika.core", BepInDependency.DependencyFlags.SoftDependency)]
     public class BotCensusPlugin : BaseUnityPlugin
@@ -383,7 +383,7 @@ namespace BotCensus
         // hides the game's own battle HUD. Key off that same signal so the overlay isn't left sitting on top.
         static bool MenuCoveringHud()
         {
-            var screens = CurrentScreenSingletonClass.Instance;
+            var screens = EftScreenManager.Instance;
             return screens == null || !screens.CheckCurrentScreen(EEftScreenType.BattleUI);
         }
     }
